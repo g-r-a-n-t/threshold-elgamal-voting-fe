@@ -1,0 +1,8 @@
+.codex
+.fe-lsp.json
+.fe-lsp/
+
+threshold_elgamal_fe_reference/out/
+threshold_elgamal_fe_reference/ingots/*/out/
+threshold_elgamal_fe_reference/bench/
+
