@@ -1,0 +1,93 @@
+// BN254 / alt_bn128 domain constants.
+//
+// - `FIELD_MODULUS` is the base field prime `p`, used for point coordinates.
+// - `GROUP_ORDER` is the scalar field prime `q`, used for scalars in G1.
+//
+// In the EVM, BN254 G1 operations are provided by the EIP-196 precompiles
+// (ECADD/ECMUL). We mostly access them via `std::evm::crypto`.
+pub const FIELD_MODULUS: u256 = 21888242871839275222246405745257275088696311157297823662689037894645226208583
+
+pub const GROUP_ORDER: u256 = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+
+// Standard generator for BN254 G1 used by the EVM precompiles.
+pub const G1_GENERATOR_X: u256 = 1
+pub const G1_GENERATOR_Y: u256 = 2
+
+// Precompile addresses (for reference). Most code uses `std::evm::crypto`
+// wrappers instead of calling these directly.
+pub const MODEXP_PRECOMPILE: u256 = 0x05
+pub const ECADD_PRECOMPILE: u256 = 0x06
+pub const ECMUL_PRECOMPILE: u256 = 0x07
+pub const ECPAIRING_PRECOMPILE: u256 = 0x08
+
+// A BN254 G1 point in affine coordinates.
+//
+// Convention:
+// - The point at infinity is encoded as (0, 0), which is what the EVM
+//   precompiles use.
+pub struct G1Point {
+    // x-coordinate (mod p). Must be < FIELD_MODULUS for non-infinity points.
+    pub x: u256,
+    // y-coordinate (mod p). Must be < FIELD_MODULUS for non-infinity points.
+    pub y: u256,
+}
+
+pub type G1PointWords = [u256; 2]
+
+// Exponential ElGamal ciphertext: (c1, c2) where both components are G1 points.
+//
+// Semantics (nonce r, message point M, public key PK):
+// - c1 = r·G
+// - c2 = M + r·PK
+pub struct Ciphertext { pub c1: G1Point, pub c2: G1Point }
+
+pub type CiphertextWords = [u256; 4]
+
+// Minimal types for a future extension that records decryption shares and proofs.
+pub struct PartialDecryptionShare {
+    // Share index (x-coordinate) used for Lagrange interpolation.
+    pub index: u256,
+    // Partial decryption point: share = s_i · c1 for the ciphertext component c1.
+    pub share: G1Point,
+}
+
+// Placeholder for a Chaum–Pedersen / DLEQ proof in G1.
+//
+// Intended statement (typical form):
+// - Prove knowledge of `z` such that:
+//   - t1 = z·G
+//   - t2 = z·PK
+// and that the decryption share is consistent with the ciphertext component.
+//
+// This scaffold does not yet implement proof generation or verification; the
+// struct exists to make future API wiring explicit.
+pub struct DleqProof { pub t1: G1Point, pub t2: G1Point, pub z: u256 }
+
+pub fn g1_generator() -> G1Point {
+    // Standard generator used by the BN254 precompiles.
+    G1Point { x: G1_GENERATOR_X, y: G1_GENERATOR_Y }
+}
+
+pub fn g1_infinity() -> G1Point {
+    // Identity element in G1 (point at infinity).
+    G1Point { x: 0, y: 0 }
+}
+
+pub fn g1_point_to_words(point: G1Point) -> G1PointWords {
+    [point.x, point.y]
+}
+
+pub fn g1_point_from_words(words: G1PointWords) -> G1Point {
+    G1Point { x: words[0], y: words[1] }
+}
+
+pub fn ciphertext_to_words(ciphertext: Ciphertext) -> CiphertextWords {
+    [ciphertext.c1.x, ciphertext.c1.y, ciphertext.c2.x, ciphertext.c2.y]
+}
+
+pub fn ciphertext_from_words(words: CiphertextWords) -> Ciphertext {
+    Ciphertext {
+        c1: G1Point { x: words[0], y: words[1] },
+        c2: G1Point { x: words[2], y: words[3] },
+    }
+}

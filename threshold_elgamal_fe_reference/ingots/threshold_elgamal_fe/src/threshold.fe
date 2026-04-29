@@ -1,0 +1,149 @@
+use std::evm::crypto
+
+use ingot::bn254_g1
+use ingot::elgamal
+use ingot::types::{GROUP_ORDER, G1Point, g1_infinity}
+
+// Threshold helpers: Lagrange interpolation in the exponent over Z_q.
+//
+// In a (t,n) Shamir-style setup, each participant holds a scalar share s_i.
+// Given t decryption shares D_i = s_i · c1, we can combine them into:
+//   D = secret · c1
+// without revealing the secret scalar, by using Lagrange coefficients λ_i
+// evaluated at x = 0.
+
+fn neg_mod_q(value: u256) -> u256 {
+    // Compute (-value) mod q in the scalar field.
+    (GROUP_ORDER - (value % GROUP_ORDER)) % GROUP_ORDER
+}
+
+fn sub_mod_q(lhs: u256, rhs: u256) -> u256 {
+    // Compute (lhs - rhs) mod q in the scalar field.
+    (lhs + GROUP_ORDER - (rhs % GROUP_ORDER)) % GROUP_ORDER
+}
+
+pub fn mod_inv_q(value: u256) -> u256 {
+    // Modular inverse in Z_q, using Fermat's little theorem since q is prime:
+    //   a^{-1} = a^{q-2} mod q
+    let v = value % GROUP_ORDER
+    assert(v != 0)
+    crypto::modexp(v, GROUP_ORDER - 2, GROUP_ORDER)
+}
+
+pub fn lagrange_coeff_at_zero_3(index: u256, other1: u256, other2: u256) -> u256 {
+    // Lagrange coefficient at x=0 for the point with x-coordinate `index`,
+    // assuming exactly 3 points total:
+    //
+    //   λ_i(0) = Π_{j≠i} (0 - x_j) / (x_i - x_j)  mod q
+    //
+    // This helper is specialized to 3 shares because the test vectors use a
+    // 3-of-n threshold. Generalization to t shares is straightforward.
+    lagrange_coeff_at_zero(position: 0, indices: [index, other1, other2])
+}
+
+pub fn lagrange_coeff_at_zero<const N: usize>(position: usize, indices: [u256; N]) -> u256 {
+    // General Lagrange coefficient at x=0 for a fixed-size share-index array.
+    //
+    //   λ_i(0) = Π_{j≠i} (0 - x_j) / (x_i - x_j)  mod q
+    assert(N > 0)
+    assert(position < N)
+
+    let index_i = indices[position] % GROUP_ORDER
+    assert(index_i != 0)
+
+    let mut numerator: u256 = 1
+    let mut denom: u256 = 1
+    let mut j: usize = 0
+
+    while j < N {
+        let index_j = indices[j] % GROUP_ORDER
+        assert(index_j != 0)
+
+        if j != position {
+            assert(index_i != index_j)
+            numerator = crypto::mulmod(numerator, neg_mod_q(value: index_j), GROUP_ORDER)
+            denom = crypto::mulmod(denom, sub_mod_q(lhs: index_i, rhs: index_j), GROUP_ORDER)
+        }
+
+        j += 1
+    }
+
+    crypto::mulmod(numerator, mod_inv_q(value: denom), GROUP_ORDER)
+}
+
+pub fn combine_partial_points<const N: usize>(
+    indices: [u256; N],
+    share_xs: [u256; N],
+    share_ys: [u256; N],
+) -> G1Point {
+    // Combine N partial decryptions into a single "mask removal" point.
+    //
+    // Share indices must be non-zero and distinct modulo the BN254 scalar order.
+    assert(N > 0)
+
+    let mut i: usize = 0
+    let mut combined = g1_infinity()
+
+    while i < N {
+        let lambda = lagrange_coeff_at_zero(position: i, indices: indices)
+        let share = G1Point { x: share_xs[i], y: share_ys[i] }
+        let term = bn254_g1::scalar_mul(point: share, scalar: lambda)
+        combined = bn254_g1::g1_add(lhs: combined, rhs: term)
+        i += 1
+    }
+
+    combined
+}
+
+pub fn combine_partial_points_3(
+    index1: u256,
+    share1: G1Point,
+    index2: u256,
+    share2: G1Point,
+    index3: u256,
+    share3: G1Point,
+) -> G1Point {
+    // Combine three partial decryptions into a single "mask removal" point.
+    //
+    // Callers must ensure:
+    // - indices are distinct and non-zero (mod q)
+    // - shares correspond to those indices for the same ciphertext component c1
+    combine_partial_points(
+        indices: [index1, index2, index3],
+        share_xs: [share1.x, share2.x, share3.x],
+        share_ys: [share1.y, share2.y, share3.y],
+    )
+}
+
+pub fn points_equal(lhs: G1Point, rhs: G1Point) -> bool {
+    // Simple affine-coordinate equality check (including infinity = (0,0)).
+    lhs.x == rhs.x && lhs.y == rhs.y
+}
+
+pub fn discrete_log_signed(target: G1Point, bound: u256) -> i256 {
+    // Very small "signed discrete log" recovery:
+    // - search m in [-bound, +bound]
+    // - return m if target == m·G
+    //
+    // This is only viable when you *know* the message is small (e.g. tally in a
+    // small range). For larger domains this is intractable on-chain.
+    let bound_i: i256 = bound.downcast_unchecked()
+    let mut m: i256 = -bound_i
+
+    while m <= bound_i {
+        let candidate = elgamal::encode_message_point(message: m)
+        if points_equal(lhs: candidate, rhs: target) {
+            return m
+        }
+        m += 1
+    }
+
+    // Not found in the provided range. Callers should treat this as failure.
+    //
+    // NOTE:
+    // This function returns an `i256`, so there is no "None" sentinel. Returning
+    // `0` is ambiguous (0 may be a valid decoded message). In this reference
+    // scaffold we rely on the protocol guaranteeing the tally is within the
+    // supplied bound.
+    0
+}

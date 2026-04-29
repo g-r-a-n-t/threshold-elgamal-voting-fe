@@ -1,0 +1,72 @@
+use std::evm::crypto
+
+use ingot::types::{FIELD_MODULUS, GROUP_ORDER, G1Point}
+
+// BN254 G1 helpers implemented via EVM precompiles (EIP-196).
+//
+// This module keeps the higher-level contract code independent of raw byte
+// buffer assembly details by leaning on `std::evm::crypto::{ec_add, ec_mul}`.
+//
+// Notes:
+// - `std::evm::crypto::ec_add` and `ec_mul` revert on malformed inputs / invalid
+//   points, which we use as a cheap validity check.
+// - We encode the point at infinity as (0, 0), matching the precompile convention.
+
+pub fn is_infinity(point: G1Point) -> bool {
+    // BN254 precompiles encode infinity as (0, 0).
+    point.x == 0 && point.y == 0
+}
+
+pub fn negate(point: G1Point) -> G1Point {
+    // For non-infinity points: -(x, y) = (x, p - y) over the base field.
+    assert_coordinate_range(point)
+    G1Point { x: point.x, y: (FIELD_MODULUS - point.y) % FIELD_MODULUS }
+}
+
+pub fn assert_scalar_mod_q(value: u256) {
+    // Scalars used for G1 multiplication live in the prime field Z_q.
+    assert(value < GROUP_ORDER)
+}
+
+pub fn assert_coordinate_range(point: G1Point) {
+    // Guard against out-of-field coordinates which would make precompiles fail.
+    if is_infinity(point) {
+        return
+    }
+
+    assert(point.x < FIELD_MODULUS)
+    assert(point.y < FIELD_MODULUS)
+}
+
+pub fn assert_valid_g1(point: G1Point) {
+    assert_coordinate_range(point)
+    // EIP-196 precompiles fail on invalid points. Multiplying by 1 is a cheap
+    // validator that also rejects out-of-field coordinates.
+    let px: u256 = point.x
+    let py: u256 = point.y
+    let _ = crypto::ec_mul(px, py, 1)
+}
+
+pub fn g1_add(lhs: G1Point, rhs: G1Point) -> G1Point {
+    // Group operation in affine coordinates using the ECADD precompile.
+    assert_coordinate_range(point: lhs)
+    assert_coordinate_range(point: rhs)
+    let ax: u256 = lhs.x
+    let ay: u256 = lhs.y
+    let bx: u256 = rhs.x
+    let by: u256 = rhs.y
+    let (x, y) = crypto::ec_add(ax, ay, bx, by)
+    G1Point { x, y }
+}
+
+pub fn scalar_mul(point: G1Point, scalar: u256) -> G1Point {
+    // Scalar multiplication using the ECMUL precompile.
+    //
+    // The group is of order `GROUP_ORDER` (q), so we reduce the scalar mod q.
+    assert_coordinate_range(point)
+    let s = scalar % GROUP_ORDER
+    let px: u256 = point.x
+    let py: u256 = point.y
+    let (x, y) = crypto::ec_mul(px, py, s)
+    G1Point { x, y }
+}
