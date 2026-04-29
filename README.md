@@ -23,6 +23,12 @@ On `extra`, this repository also includes the Python oracle, deterministic vecto
 fe build
 ```
 
+## Gas Snapshot
+
+The gas benchmarks live on `extra` and compare Fe's Sonatina backend with Fe to Yul to solc. At a high level, `castVote(...)` is the expensive path because each vote validates two BN254 points and updates both ciphertext points in storage. Subsequent votes are much cheaper than the first vote, `getAggregate()` is relatively small, and the optimized Sonatina and Yul paths are close enough that backend choice is not the main driver here.
+
+See the full gas report on `extra`: [reports/FOUNDRY_GAS_REPORT.md](blob/extra/reports/FOUNDRY_GAS_REPORT.md).
+
 ## Extra branch
 
 ```bash
