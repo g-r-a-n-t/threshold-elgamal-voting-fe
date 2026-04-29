@@ -30,17 +30,6 @@ pub fn mod_inv_q(value: u256) -> u256 {
     crypto::modexp(v, GROUP_ORDER - 2, GROUP_ORDER)
 }
 
-pub fn lagrange_coeff_at_zero_3(index: u256, other1: u256, other2: u256) -> u256 {
-    // Lagrange coefficient at x=0 for the point with x-coordinate `index`,
-    // assuming exactly 3 points total:
-    //
-    //   λ_i(0) = Π_{j≠i} (0 - x_j) / (x_i - x_j)  mod q
-    //
-    // This helper is specialized to 3 shares because the test vectors use a
-    // 3-of-n threshold. Generalization to t shares is straightforward.
-    lagrange_coeff_at_zero(position: 0, indices: [index, other1, other2])
-}
-
 pub fn lagrange_coeff_at_zero<const N: usize>(position: usize, indices: [u256; N]) -> u256 {
     // General Lagrange coefficient at x=0 for a fixed-size share-index array.
     //
@@ -95,27 +84,7 @@ pub fn combine_partial_points<const N: usize>(
     combined
 }
 
-pub fn combine_partial_points_3(
-    index1: u256,
-    share1: G1Point,
-    index2: u256,
-    share2: G1Point,
-    index3: u256,
-    share3: G1Point,
-) -> G1Point {
-    // Combine three partial decryptions into a single "mask removal" point.
-    //
-    // Callers must ensure:
-    // - indices are distinct and non-zero (mod q)
-    // - shares correspond to those indices for the same ciphertext component c1
-    combine_partial_points(
-        indices: [index1, index2, index3],
-        share_xs: [share1.x, share2.x, share3.x],
-        share_ys: [share1.y, share2.y, share3.y],
-    )
-}
-
-pub fn points_equal(lhs: G1Point, rhs: G1Point) -> bool {
+fn points_equal(lhs: G1Point, rhs: G1Point) -> bool {
     // Simple affine-coordinate equality check (including infinity = (0,0)).
     lhs.x == rhs.x && lhs.y == rhs.y
 }
@@ -138,12 +107,7 @@ pub fn discrete_log_signed(target: G1Point, bound: u256) -> i256 {
         m += 1
     }
 
-    // Not found in the provided range. Callers should treat this as failure.
-    //
-    // NOTE:
-    // This function returns an `i256`, so there is no "None" sentinel. Returning
-    // `0` is ambiguous (0 may be a valid decoded message). In this reference
-    // scaffold we rely on the protocol guaranteeing the tally is within the
-    // supplied bound.
+    // Not found in the provided range. Returning 0 would be ambiguous, so fail.
+    assert(false)
     0
 }

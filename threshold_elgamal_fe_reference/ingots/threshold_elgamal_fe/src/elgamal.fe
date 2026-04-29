@@ -23,7 +23,11 @@ pub fn add_ciphertexts(lhs: Ciphertext, rhs: Ciphertext) -> Ciphertext {
     }
 }
 
-pub fn add_ciphertexts_from_arrays<const N: usize>(
+pub fn zero_ciphertext() -> Ciphertext {
+    Ciphertext { c1: g1_infinity(), c2: g1_infinity() }
+}
+
+pub fn aggregate_ciphertext_arrays<const N: usize>(
     c1_xs: [u256; N],
     c1_ys: [u256; N],
     c2_xs: [u256; N],
@@ -34,7 +38,7 @@ pub fn add_ciphertexts_from_arrays<const N: usize>(
     // Fe's scalar fixed-array lowering is currently more mature than arrays of
     // structs, so this keeps vector data in parallel word arrays and rebuilds
     // points only at the EC boundary.
-    let mut aggregate = Ciphertext { c1: g1_infinity(), c2: g1_infinity() }
+    let mut aggregate = zero_ciphertext()
     let mut i: usize = 0
 
     while i < N {
