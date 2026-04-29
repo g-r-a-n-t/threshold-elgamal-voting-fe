@@ -1,0 +1,30 @@
+// BN254 threshold ElGamal helpers.
+//
+// This ingot is intentionally contract-agnostic. It owns:
+// - BN254 G1 precompile wrappers
+// - exponential ElGamal encryption over message points
+// - fixed-array aggregation helpers
+// - threshold decryption share combination helpers
+//
+// Non-goals:
+// - DKG / key distribution
+// - ballot validity proofs
+// - decryption-share proofs (DLEQ / Chaum–Pedersen)
+// - election policy or storage
+//
+// Keep the public surface here small and explicit so contract ingots can depend
+// on crypto without reaching through internal module paths.
+
+pub use bn254_g1::{assert_valid_g1, g1_add, is_infinity, negate, scalar_mul}
+pub use elgamal::{
+    aggregate_ciphertext_arrays,
+    add_ciphertexts,
+    encode_message_point,
+    encode_signed_scalar,
+    encrypt_point,
+    partial_decrypt,
+    remove_mask,
+    zero_ciphertext,
+}
+pub use threshold::{combine_partial_points, discrete_log_signed, lagrange_coeff_at_zero}
+pub use types::{Ciphertext, CiphertextWords, G1Point, G1PointWords, g1_generator, g1_infinity}

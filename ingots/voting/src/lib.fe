@@ -1,0 +1,6 @@
+// Voting contract surface.
+//
+// The contract ingot depends on `crypto` for BN254 and threshold ElGamal
+// operations, but keeps election storage and policy separate.
+
+pub use election::{ElectionMsg, ThresholdElection}
