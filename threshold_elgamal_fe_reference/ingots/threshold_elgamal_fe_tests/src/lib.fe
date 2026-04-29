@@ -1,0 +1,282 @@
+use std::evm::{Address, Call, Evm, assert}
+
+use threshold_elgamal_fe::{
+    Ciphertext,
+    ElectionMsg,
+    G1Point,
+    ThresholdElection,
+    add_ciphertexts,
+    add_ciphertexts_from_arrays,
+    assert_valid_g1,
+    combine_partial_points,
+    combine_partial_points_3,
+    discrete_log_signed,
+    encode_message_point,
+    encrypt_point,
+    g1_generator,
+    g1_infinity,
+    partial_decrypt,
+    remove_mask,
+    scalar_mul,
+}
+
+const MASTER_SECRET: u256 = 32164469228446645568222187176204591979408127714536898536374506545149732471
+
+const PUBLIC_KEY_X: u256 = 10300624219749368059713323037041369269067239741452710719700636823789733733154
+const PUBLIC_KEY_Y: u256 = 17827553270106623771307957771827766897690156367955456415120897338355905013159
+
+// ballot 1 vote=1 nonce=101
+const B1_C1_X: u256 = 101736474863018474486226188821757310196822904661437109985129121643628477843
+const B1_C1_Y: u256 = 20809165444309486437598143500680353367168077151871577252054480771838214401340
+const B1_C2_X: u256 = 12962917735978141221444368205266247483683847511298192923389131646601947578495
+const B1_C2_Y: u256 = 13511671430952089340395405596387091423198727762290462286614491900744094320353
+
+// ballot 2 vote=-1 nonce=202
+const B2_C1_X: u256 = 17824683701631220404790167295863547058164197332047694173140186357298477189027
+const B2_C1_Y: u256 = 3097434001403605815138448380136495440524244032504546416970701306470368425560
+const B2_C2_X: u256 = 92987952764381805479106405600674428203634538868185823452120739265792181903
+const B2_C2_Y: u256 = 53022711887334421713593758480668320099728043176085275220323290016026430976
+
+// ballot 3 vote=1 nonce=303
+const B3_C1_X: u256 = 18788921900215882028576331803050066650912825348279745351731017781865893991129
+const B3_C1_Y: u256 = 20814377278669429206835538101018916238670560516677675250133520990818107708475
+const B3_C2_X: u256 = 61437125467865537038641829258986279070513676837218299218577578148222252191
+const B3_C2_Y: u256 = 18684938108794433691656587870215457405736474345011620771125666855515202760799
+
+// ballot 4 vote=0 nonce=404
+const B4_C1_X: u256 = 13256385979709478041825407576283983783238279154098759374429323029806284937096
+const B4_C1_Y: u256 = 21513102545268876961651414862126510904709719983608676746884501617698560681524
+const B4_C2_X: u256 = 15693740690350101788647025923986963135110670086567359550756517522206769477839
+const B4_C2_Y: u256 = 52569278308473687904715357417445726822408309503136783969846472142094042950
+
+// ballot 5 vote=1 nonce=505
+const B5_C1_X: u256 = 18174603526803993658686942152143384402313116336828627275335369390747190095208
+const B5_C1_Y: u256 = 19670326919000185315510907564113899766268039106509406435570657051621276703121
+const B5_C2_X: u256 = 20330519925086639957082591346545531750070715601189046589362910951915186218873
+const B5_C2_Y: u256 = 20743859361497709309955694236618608865509155234298968664635510007930902325659
+
+// aggregate ciphertext
+const AGG_C1_X: u256 = 16404442663957185746263930515050125482033472485901130913021726498975982758907
+const AGG_C1_Y: u256 = 13274530490267589212644233776423850103349736059235004318598498572925086435871
+const AGG_C2_X: u256 = 9247987211804826595573629444076173043879837605879757743509119968087650564828
+const AGG_C2_Y: u256 = 5393959636255382324049160108433203146296684020322750430401185645132912776962
+
+// partial decryptions (indices 1,3,5)
+const SHARE1_SCALAR: u256 = 32164469228446645568222187176204592342198060342925670844585004591619108606
+const SHARE3_SCALAR: u256 = 32164469228446645568222187176204594020034776716494147059316613200651131196
+const SHARE5_SCALAR: u256 = 32164469228446645568222187176204596967547294579117198738462371831140847546
+
+const P1_SHARE_X: u256 = 9136402060396806197519997329768570337426954248674371109912792481662889710692
+const P1_SHARE_Y: u256 = 20731886914105391868366174593610425147688866533180088737180891317020531189151
+const P3_SHARE_X: u256 = 4381656593018156367855630773462469628909004925871017110910808398948073494005
+const P3_SHARE_Y: u256 = 340458107912114233642053672856400928773871898167500829165997657129303249054
+const P5_SHARE_X: u256 = 21784424833747062850980908083044451848213924085445932442157526472781317446880
+const P5_SHARE_Y: u256 = 10123093029886698067030226412842976978065667878697314952477460762611114476861
+
+// combined share + decrypted message point
+const COMBINED_X: u256 = 21758482032077336227305118053287502802164598675227827190242519202352247705165
+const COMBINED_Y: u256 = 1476667931050577511998841848315174229918181102948940108679438150938085081818
+
+const DECRYPTED_X: u256 = 1368015179489954701390400359078579693043519447331113978918064868415326638035
+const DECRYPTED_Y: u256 = 9918110051302171585080402603319702774565515993150576347155970296011118125764
+
+const DECODED_TALLY: i256 = 2
+
+#[test]
+fn test_vectors_encrypt_aggregate_decrypt_roundtrip() {
+    let public_key = G1Point { x: PUBLIC_KEY_X, y: PUBLIC_KEY_Y }
+
+    let b1 = encrypt_point(
+        message_point: encode_message_point(message: 1),
+        nonce: 101,
+        public_key: public_key,
+    )
+    assert(b1.c1.x == B1_C1_X)
+    assert(b1.c1.y == B1_C1_Y)
+    assert(b1.c2.x == B1_C2_X)
+    assert(b1.c2.y == B1_C2_Y)
+
+    let b2 = encrypt_point(
+        message_point: encode_message_point(message: -1),
+        nonce: 202,
+        public_key: public_key,
+    )
+    assert(b2.c1.x == B2_C1_X)
+    assert(b2.c1.y == B2_C1_Y)
+    assert(b2.c2.x == B2_C2_X)
+    assert(b2.c2.y == B2_C2_Y)
+
+    let b3 = encrypt_point(
+        message_point: encode_message_point(message: 1),
+        nonce: 303,
+        public_key: public_key,
+    )
+    assert(b3.c1.x == B3_C1_X)
+    assert(b3.c1.y == B3_C1_Y)
+    assert(b3.c2.x == B3_C2_X)
+    assert(b3.c2.y == B3_C2_Y)
+
+    let b4 = encrypt_point(
+        message_point: encode_message_point(message: 0),
+        nonce: 404,
+        public_key: public_key,
+    )
+    assert(b4.c1.x == B4_C1_X)
+    assert(b4.c1.y == B4_C1_Y)
+    assert(b4.c2.x == B4_C2_X)
+    assert(b4.c2.y == B4_C2_Y)
+
+    let b5 = encrypt_point(
+        message_point: encode_message_point(message: 1),
+        nonce: 505,
+        public_key: public_key,
+    )
+    assert(b5.c1.x == B5_C1_X)
+    assert(b5.c1.y == B5_C1_Y)
+    assert(b5.c2.x == B5_C2_X)
+    assert(b5.c2.y == B5_C2_Y)
+
+    let agg = add_ciphertexts_from_arrays(
+        c1_xs: [b1.c1.x, b2.c1.x, b3.c1.x, b4.c1.x, b5.c1.x],
+        c1_ys: [b1.c1.y, b2.c1.y, b3.c1.y, b4.c1.y, b5.c1.y],
+        c2_xs: [b1.c2.x, b2.c2.x, b3.c2.x, b4.c2.x, b5.c2.x],
+        c2_ys: [b1.c2.y, b2.c2.y, b3.c2.y, b4.c2.y, b5.c2.y],
+    )
+    assert(agg.c1.x == AGG_C1_X)
+    assert(agg.c1.y == AGG_C1_Y)
+    assert(agg.c2.x == AGG_C2_X)
+    assert(agg.c2.y == AGG_C2_Y)
+
+    let p1 = partial_decrypt(
+        share_scalar: SHARE1_SCALAR,
+        c1: G1Point { x: agg.c1.x, y: agg.c1.y },
+    )
+    assert(p1.x == P1_SHARE_X)
+    assert(p1.y == P1_SHARE_Y)
+
+    let p3 = partial_decrypt(
+        share_scalar: SHARE3_SCALAR,
+        c1: G1Point { x: agg.c1.x, y: agg.c1.y },
+    )
+    assert(p3.x == P3_SHARE_X)
+    assert(p3.y == P3_SHARE_Y)
+
+    let p5 = partial_decrypt(
+        share_scalar: SHARE5_SCALAR,
+        c1: G1Point { x: agg.c1.x, y: agg.c1.y },
+    )
+    assert(p5.x == P5_SHARE_X)
+    assert(p5.y == P5_SHARE_Y)
+
+    let combined = combine_partial_points(
+        indices: [1, 3, 5],
+        share_xs: [p1.x, p3.x, p5.x],
+        share_ys: [p1.y, p3.y, p5.y],
+    )
+    assert(combined.x == COMBINED_X)
+    assert(combined.y == COMBINED_Y)
+
+    let message_point = remove_mask(ciphertext: agg, combined_share: combined)
+    assert(message_point.x == DECRYPTED_X)
+    assert(message_point.y == DECRYPTED_Y)
+
+    let recovered: i256 = discrete_log_signed(target: message_point, bound: 5)
+    assert(recovered == DECODED_TALLY)
+}
+
+#[test]
+fn test_fixed_arity_threshold_wrapper_matches_array_helper() {
+    let fixed = combine_partial_points_3(
+        index1: 1,
+        share1: G1Point { x: P1_SHARE_X, y: P1_SHARE_Y },
+        index2: 3,
+        share2: G1Point { x: P3_SHARE_X, y: P3_SHARE_Y },
+        index3: 5,
+        share3: G1Point { x: P5_SHARE_X, y: P5_SHARE_Y },
+    )
+
+    let generic = combine_partial_points(
+        indices: [1, 3, 5],
+        share_xs: [P1_SHARE_X, P3_SHARE_X, P5_SHARE_X],
+        share_ys: [P1_SHARE_Y, P3_SHARE_Y, P5_SHARE_Y],
+    )
+
+    assert(fixed.x == generic.x)
+    assert(fixed.y == generic.y)
+    assert(generic.x == COMBINED_X)
+    assert(generic.y == COMBINED_Y)
+}
+
+#[test]
+fn test_vector_public_key_matches_secret_mul() {
+    let computed = scalar_mul(point: g1_generator(), scalar: MASTER_SECRET)
+    assert(computed.x == PUBLIC_KEY_X)
+    assert(computed.y == PUBLIC_KEY_Y)
+}
+
+#[test]
+fn test_add_ciphertexts_with_identity_preserves_ballot() {
+    let identity = Ciphertext { c1: g1_infinity(), c2: g1_infinity() }
+    let ballot = Ciphertext {
+        c1: G1Point { x: B1_C1_X, y: B1_C1_Y },
+        c2: G1Point { x: B1_C2_X, y: B1_C2_Y },
+    }
+
+    let updated = add_ciphertexts(lhs: identity, rhs: ballot)
+    assert(updated.c1.x == B1_C1_X)
+    assert(updated.c1.y == B1_C1_Y)
+    assert(updated.c2.x == B1_C2_X)
+    assert(updated.c2.y == B1_C2_Y)
+}
+
+#[test(should_revert)]
+fn test_duplicate_threshold_share_index_is_rejected() {
+    let _ = combine_partial_points(
+        indices: [1, 1, 5],
+        share_xs: [P1_SHARE_X, P3_SHARE_X, P5_SHARE_X],
+        share_ys: [P1_SHARE_Y, P3_SHARE_Y, P5_SHARE_Y],
+    )
+}
+
+#[test]
+fn test_contract_aggregate_matches_vector()
+uses (evm: mut Evm, call: mut Call)
+{
+    let coordinator = Address { inner: 1 }
+    let voting_deadline: u256 = 1000000000000000000
+    let threshold: u256 = 3
+    let addr = evm
+        .create2<ThresholdElection>(
+            value: 0,
+            args: (PUBLIC_KEY_X, PUBLIC_KEY_Y, threshold, voting_deadline, coordinator),
+            salt: 0,
+        )
+    assert(addr.inner != 0)
+
+    addr.call(
+        ElectionMsg::CastVote { c1_x: B1_C1_X, c1_y: B1_C1_Y, c2_x: B1_C2_X, c2_y: B1_C2_Y },
+    )
+    addr.call(
+        ElectionMsg::CastVote { c1_x: B2_C1_X, c1_y: B2_C1_Y, c2_x: B2_C2_X, c2_y: B2_C2_Y },
+    )
+    addr.call(
+        ElectionMsg::CastVote { c1_x: B3_C1_X, c1_y: B3_C1_Y, c2_x: B3_C2_X, c2_y: B3_C2_Y },
+    )
+    addr.call(
+        ElectionMsg::CastVote { c1_x: B4_C1_X, c1_y: B4_C1_Y, c2_x: B4_C2_X, c2_y: B4_C2_Y },
+    )
+    addr.call(
+        ElectionMsg::CastVote { c1_x: B5_C1_X, c1_y: B5_C1_Y, c2_x: B5_C2_X, c2_y: B5_C2_Y },
+    )
+
+    let (c1_x, c1_y, c2_x, c2_y): (u256, u256, u256, u256) = addr.call(ElectionMsg::GetAggregate {})
+    assert(c1_x == AGG_C1_X)
+    assert(c1_y == AGG_C1_Y)
+    assert(c2_x == AGG_C2_X)
+    assert(c2_y == AGG_C2_Y)
+}
+
+#[test(should_revert)]
+fn test_invalid_g1_point_is_rejected() {
+    assert_valid_g1(point: G1Point { x: 0, y: 1 })
+}

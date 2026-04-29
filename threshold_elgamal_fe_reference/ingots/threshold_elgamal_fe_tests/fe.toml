@@ -1,0 +1,6 @@
+[ingot]
+name = "threshold_elgamal_fe_tests"
+version = "0.1.0"
+
+[dependencies]
+threshold_elgamal_fe = true

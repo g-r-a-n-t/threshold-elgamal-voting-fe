@@ -1,0 +1,5 @@
+2026-04-23T14:00:54.505064Z  INFO fe::lsp::startup: fe-language-server starting pid=1532537 ppid=Some(1531169) argv=["/home/grant/.fe/bin/fe", "lsp"] cwd=/home/grant/workshop/agg-elgamal binary=/home/grant/.fe/bin/fe log_file=/home/grant/workshop/agg-elgamal/.fe-lsp/1532537.log version=26.0.1
+2026-04-23T14:00:54.505325Z  INFO fe::lsp::request: → request method=initialize request_id=Number(0)
+2026-04-23T14:00:54.505476Z  INFO fe_language_server::functionality::handlers: initializing language server!
+2026-04-23T14:00:54.505495Z  INFO fe::lsp::workspace: initialize params received process_id=Some(1531169) client_name=Some("Zed") client_version=Some("0.233.7+stable.244.2f844c3cdb1380f992a892f173eb45b6bcaad24c") workspace_folders=[" (file:///home/grant/workshop/agg-elgamal)"] root_uri=Some("file:///home/grant/workshop/agg-elgamal") root_path=Some("/home/grant/workshop/agg-elgamal")
+2026-04-23T14:00:54.505514Z  INFO fe::lsp::workspace: chose workspace root chosen_root=/home/grant/workshop/agg-elgamal
