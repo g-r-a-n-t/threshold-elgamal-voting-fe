@@ -1,0 +1,196 @@
+use std::abi::sol
+
+use ingot::bn254_g1
+use ingot::elgamal
+use ingot::types::{Ciphertext, CiphertextWords, G1Point, G1PointWords}
+
+// Minimal on-chain "election" contract for threshold ElGamal tallies.
+//
+// Responsibilities:
+// - store a public key (G1 point)
+// - accept encrypted ballots as ElGamal ciphertexts (two G1 points)
+// - maintain an encrypted running tally by homomorphic ciphertext addition
+// - provide a coordinator-only switch to close voting
+// - record a coordinator-provided final plaintext tally + decoded message point
+//
+// Non-responsibilities / intentionally NOT enforced on-chain (yet):
+// - ballot validity proofs
+// - decryption-share proofs
+// - verifying that the recorded final result matches the aggregate ciphertext
+
+#[event]
+pub struct VoteCast {
+    #[indexed]
+    voter: Address,
+    ballot_index: u256,
+    c1_x: u256,
+    c1_y: u256,
+    c2_x: u256,
+    c2_y: u256,
+}
+
+#[event]
+pub struct ElectionClosed {
+    #[indexed]
+    caller: Address,
+}
+
+#[event]
+pub struct FinalResultRecorded {
+    #[indexed]
+    caller: Address,
+    tally: i256,
+    m_x: u256,
+    m_y: u256,
+}
+
+pub struct ElectionStore {
+    // Public key for the election (G1 point in affine coords).
+    pub public_key: G1PointWords,
+
+    // Aggregate ciphertext (c1, c2) accumulated by component-wise EC addition.
+    pub aggregate: CiphertextWords,
+
+    // Book-keeping / policy knobs.
+    pub ballot_count: u256,
+    pub threshold: u256,
+    pub voting_deadline: u256,
+    pub coordinator: Address,
+    pub closed: bool,
+
+    // Published final result (not verified against the aggregate in this scaffold).
+    pub final_tally: i256,
+    pub final_m: G1PointWords,
+}
+
+pub msg ElectionMsg {
+    // Accept an encrypted ballot (c1, c2) where both are BN254 G1 points.
+    #[selector = sol("castVote(uint256,uint256,uint256,uint256)")]
+    CastVote { c1_x: u256, c1_y: u256, c2_x: u256, c2_y: u256 },
+
+    // Return the current aggregate ciphertext.
+    #[selector = sol("getAggregate()")]
+    GetAggregate -> (u256, u256, u256, u256),
+
+    // Coordinator-only: permanently stop accepting votes.
+    #[selector = sol("closeVoting()")]
+    CloseVoting,
+
+    // Coordinator-only: record the plaintext tally and its message point.
+    #[selector = sol("recordFinalResult(int256,uint256,uint256)")]
+    RecordFinalResult { tally: i256, m_x: u256, m_y: u256 },
+}
+
+pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
+    mut store: ElectionStore,
+
+    init(
+        public_key_x: u256,
+        public_key_y: u256,
+        threshold: u256,
+        voting_deadline: u256,
+        coordinator: Address,
+    )
+    uses (mut store)
+    {
+        // Validate and store the public key.
+        let public_key = G1Point { x: public_key_x, y: public_key_y }
+        bn254_g1::assert_valid_g1(point: public_key)
+        assert(!bn254_g1::is_infinity(point: public_key))
+        store.public_key = [public_key_x, public_key_y]
+
+        // Encrypted zero tally starts at the point at infinity in both slots.
+        store.aggregate = [0, 0, 0, 0]
+
+        // Election configuration / permissions.
+        store.ballot_count = 0
+        assert(threshold > 0)
+        // Stored for off-chain consumers and future extensions (e.g. recording /
+        // verifying threshold decryption shares). Not currently enforced by the
+        // on-chain logic in this scaffold.
+        store.threshold = threshold
+        store.voting_deadline = voting_deadline
+        store.coordinator = coordinator
+        store.closed = false
+
+        store.final_tally = 0
+        store.final_m = [0, 0]
+    }
+
+    recv ElectionMsg {
+        CastVote { c1_x, c1_y, c2_x, c2_y } uses (ctx, mut store, mut log) {
+            // Basic state-machine checks.
+            assert(!store.closed)
+            assert(ctx.timestamp() < store.voting_deadline)
+
+            // Decode the submitted ciphertext.
+            let submitted = Ciphertext {
+                c1: G1Point { x: c1_x, y: c1_y },
+                c2: G1Point { x: c2_x, y: c2_y },
+            }
+
+            // Reject invalid curve points early. This is also a safety measure:
+            // if we accept malformed points, later EC operations can revert.
+            bn254_g1::assert_valid_g1(point: G1Point { x: submitted.c1.x, y: submitted.c1.y })
+            bn254_g1::assert_valid_g1(point: G1Point { x: submitted.c2.x, y: submitted.c2.y })
+
+            // Load the current aggregate ciphertext from storage.
+            let aggregate = Ciphertext {
+                c1: G1Point { x: store.aggregate[0], y: store.aggregate[1] },
+                c2: G1Point { x: store.aggregate[2], y: store.aggregate[3] },
+            }
+
+            // Homomorphic accumulation: Enc(m_total) += Enc(m_ballot).
+            let updated = elgamal::add_ciphertexts(lhs: aggregate, rhs: submitted)
+
+            // Persist updated aggregate.
+            store.aggregate = [updated.c1.x, updated.c1.y, updated.c2.x, updated.c2.y]
+            store.ballot_count += 1
+
+            log.emit(
+                event: VoteCast {
+                    voter: ctx.caller(),
+                    ballot_index: store.ballot_count,
+                    c1_x: c1_x,
+                    c1_y: c1_y,
+                    c2_x: c2_x,
+                    c2_y: c2_y,
+                },
+            )
+        }
+
+        GetAggregate -> (u256, u256, u256, u256) uses (store) {
+            (store.aggregate[0], store.aggregate[1], store.aggregate[2], store.aggregate[3])
+        }
+
+        CloseVoting uses (ctx, mut store, mut log) {
+            assert(ctx.caller() == store.coordinator)
+            store.closed = true
+            log.emit(event: ElectionClosed { caller: ctx.caller() })
+        }
+
+        RecordFinalResult { tally, m_x, m_y } uses (ctx, mut store, mut log) {
+            assert(ctx.caller() == store.coordinator)
+            assert(store.closed)
+            bn254_g1::assert_valid_g1(point: G1Point { x: m_x, y: m_y })
+
+            // TODO:
+            // - optionally verify that (m_x, m_y) matches the aggregate ciphertext
+            //   plus a threshold decryption proof
+            // - optionally verify a final DLEQ proof
+            //
+            // In this scaffold we just record the coordinator-provided result.
+            store.final_tally = tally
+            store.final_m = [m_x, m_y]
+
+            log.emit(
+                event: FinalResultRecorded {
+                    caller: ctx.caller(),
+                    tally: tally,
+                    m_x: m_x,
+                    m_y: m_y,
+                },
+            )
+        }
+    }
+}

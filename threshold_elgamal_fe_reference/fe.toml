@@ -1,0 +1,5 @@
+[workspace]
+name = "threshold_elgamal_fe_reference"
+version = "0.1.0"
+members = { main = ["ingots/threshold_elgamal_fe"] }
+default-members = ["ingots/threshold_elgamal_fe"]

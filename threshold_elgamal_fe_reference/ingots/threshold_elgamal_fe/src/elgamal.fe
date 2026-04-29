@@ -1,0 +1,95 @@
+use ingot::bn254_g1
+use ingot::types::{Ciphertext, G1Point, g1_generator, g1_infinity, GROUP_ORDER}
+
+// Exponential ElGamal over BN254 G1.
+//
+// Message encoding:
+// - A small signed integer `m` is mapped to the curve point `M = m·G`, where
+//   `G` is the standard G1 generator.
+//
+// Encryption (nonce r, public key PK):
+// - c1 = r·G
+// - c2 = M + r·PK
+//
+// Homomorphism:
+// - Ciphertexts add component-wise: Enc(m1) + Enc(m2) = Enc(m1 + m2)
+
+pub fn add_ciphertexts(lhs: Ciphertext, rhs: Ciphertext) -> Ciphertext {
+    // Component-wise group addition. This preserves the ElGamal structure:
+    // (c1a, c2a) + (c1b, c2b) = (c1a + c1b, c2a + c2b).
+    Ciphertext {
+        c1: bn254_g1::g1_add(lhs: lhs.c1, rhs: rhs.c1),
+        c2: bn254_g1::g1_add(lhs: lhs.c2, rhs: rhs.c2),
+    }
+}
+
+pub fn add_ciphertexts_from_arrays<const N: usize>(
+    c1_xs: [u256; N],
+    c1_ys: [u256; N],
+    c2_xs: [u256; N],
+    c2_ys: [u256; N],
+) -> Ciphertext {
+    // Fold fixed-size coordinate arrays into a single aggregate ciphertext.
+    //
+    // Fe's scalar fixed-array lowering is currently more mature than arrays of
+    // structs, so this keeps vector data in parallel word arrays and rebuilds
+    // points only at the EC boundary.
+    let mut aggregate = Ciphertext { c1: g1_infinity(), c2: g1_infinity() }
+    let mut i: usize = 0
+
+    while i < N {
+        let ciphertext = Ciphertext {
+            c1: G1Point { x: c1_xs[i], y: c1_ys[i] },
+            c2: G1Point { x: c2_xs[i], y: c2_ys[i] },
+        }
+        aggregate = add_ciphertexts(lhs: aggregate, rhs: ciphertext)
+        i += 1
+    }
+
+    aggregate
+}
+
+pub fn partial_decrypt(share_scalar: u256, c1: G1Point) -> G1Point {
+    // Decryption share for a secret-share scalar s_i is: D_i = s_i · c1.
+    bn254_g1::scalar_mul(point: c1, scalar: share_scalar)
+}
+
+pub fn remove_mask(ciphertext: Ciphertext, combined_share: G1Point) -> G1Point {
+    // Given the combined share D = secret · c1, recover the message point:
+    //   M = c2 - D
+    bn254_g1::g1_add(
+        lhs: ciphertext.c2,
+        rhs: bn254_g1::negate(point: combined_share),
+    )
+}
+
+pub fn encode_signed_scalar(message: i256) -> u256 {
+    // Map signed integers into Z_q, so we can use scalar multiplication on G1.
+    if message >= 0 {
+        let message_u: u256 = message.downcast_unchecked()
+        return message_u % GROUP_ORDER
+    }
+
+    // NOTE:
+    // negative values are mapped into Z_q.
+    let abs: u256 = (-message).downcast_unchecked()
+    (GROUP_ORDER - (abs % GROUP_ORDER)) % GROUP_ORDER
+}
+
+pub fn encode_message_point(message: i256) -> G1Point {
+    // Encode the plaintext integer as a curve point M = m·G.
+    bn254_g1::scalar_mul(
+        point: g1_generator(),
+        scalar: encode_signed_scalar(message),
+    )
+}
+
+pub fn encrypt_point(message_point: G1Point, nonce: u256, public_key: G1Point) -> Ciphertext {
+    // Encrypt an already-encoded message point using a nonce.
+    //
+    // Note: nonce reuse under a fixed public key breaks semantic security.
+    let c1 = bn254_g1::scalar_mul(point: g1_generator(), scalar: nonce)
+    let nonce_times_pk = bn254_g1::scalar_mul(point: public_key, scalar: nonce)
+
+    Ciphertext { c1: c1, c2: bn254_g1::g1_add(lhs: message_point, rhs: nonce_times_pk) }
+}
