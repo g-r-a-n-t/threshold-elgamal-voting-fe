@@ -5,19 +5,18 @@ use threshold_elgamal_fe::{
     ElectionMsg,
     G1Point,
     ThresholdElection,
+    aggregate_ciphertext_arrays,
     add_ciphertexts,
-    add_ciphertexts_from_arrays,
     assert_valid_g1,
     combine_partial_points,
-    combine_partial_points_3,
     discrete_log_signed,
     encode_message_point,
     encrypt_point,
     g1_generator,
-    g1_infinity,
     partial_decrypt,
     remove_mask,
     scalar_mul,
+    zero_ciphertext,
 }
 
 const MASTER_SECRET: u256 = 32164469228446645568222187176204591979408127714536898536374506545149732471
@@ -136,7 +135,7 @@ fn test_vectors_encrypt_aggregate_decrypt_roundtrip() {
     assert(b5.c2.x == B5_C2_X)
     assert(b5.c2.y == B5_C2_Y)
 
-    let agg = add_ciphertexts_from_arrays(
+    let agg = aggregate_ciphertext_arrays(
         c1_xs: [b1.c1.x, b2.c1.x, b3.c1.x, b4.c1.x, b5.c1.x],
         c1_ys: [b1.c1.y, b2.c1.y, b3.c1.y, b4.c1.y, b5.c1.y],
         c2_xs: [b1.c2.x, b2.c2.x, b3.c2.x, b4.c2.x, b5.c2.x],
@@ -185,26 +184,15 @@ fn test_vectors_encrypt_aggregate_decrypt_roundtrip() {
 }
 
 #[test]
-fn test_fixed_arity_threshold_wrapper_matches_array_helper() {
-    let fixed = combine_partial_points_3(
-        index1: 1,
-        share1: G1Point { x: P1_SHARE_X, y: P1_SHARE_Y },
-        index2: 3,
-        share2: G1Point { x: P3_SHARE_X, y: P3_SHARE_Y },
-        index3: 5,
-        share3: G1Point { x: P5_SHARE_X, y: P5_SHARE_Y },
-    )
-
-    let generic = combine_partial_points(
+fn test_threshold_share_combination_matches_vector() {
+    let combined = combine_partial_points(
         indices: [1, 3, 5],
         share_xs: [P1_SHARE_X, P3_SHARE_X, P5_SHARE_X],
         share_ys: [P1_SHARE_Y, P3_SHARE_Y, P5_SHARE_Y],
     )
 
-    assert(fixed.x == generic.x)
-    assert(fixed.y == generic.y)
-    assert(generic.x == COMBINED_X)
-    assert(generic.y == COMBINED_Y)
+    assert(combined.x == COMBINED_X)
+    assert(combined.y == COMBINED_Y)
 }
 
 #[test]
@@ -216,7 +204,7 @@ fn test_vector_public_key_matches_secret_mul() {
 
 #[test]
 fn test_add_ciphertexts_with_identity_preserves_ballot() {
-    let identity = Ciphertext { c1: g1_infinity(), c2: g1_infinity() }
+    let identity = zero_ciphertext()
     let ballot = Ciphertext {
         c1: G1Point { x: B1_C1_X, y: B1_C1_Y },
         c2: G1Point { x: B1_C2_X, y: B1_C2_Y },
