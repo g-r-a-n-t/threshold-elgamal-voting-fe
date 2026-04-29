@@ -1,12 +1,12 @@
 # Threshold ElGamal Voting (BN254) — Foundry gas benchmarks (Fe)
 
-This report captures Foundry gas benchmarks for the `ThresholdElection` contract in `threshold_elgamal_voting_fe/ingots/threshold_elgamal_voting_fe`.
+This report captures Foundry gas benchmarks for the `ThresholdElection` contract in `ingots/voting`.
 
 This project intentionally does **not** compare against a Solidity reference implementation (this is a new scheme / contract).
 
 ## Executive summary (verified)
 
-- Bench harness: `threshold_elgamal_voting_fe/bench` (self-contained Foundry project).
+- Bench harness: `bench` (self-contained Foundry project).
 - Two Fe compilation paths are benchmarked:
   - **Fe → Sonatina** (`fe build --backend sonatina --optimize {0,1,2}`)
   - **Fe → Yul → solc** (`fe build --backend yul --optimize 2 --solc /usr/bin/solc`)
@@ -28,7 +28,7 @@ Benchmarked contract API:
 - `closeVoting()`
 - `recordFinalResult(int256,uint256,uint256)`
 
-Bench inputs use the deterministic ciphertext vectors from `ingots/threshold_elgamal_voting_fe_tests/src/lib.fe`:
+Bench inputs use the deterministic ciphertext vectors from `ingots/vector_tests/src/lib.fe`:
 
 - `castVote_first`: ballot 1 (vote=1, nonce=101)
 - `castVote_after_1`: ballot 2 (vote=-1, nonce=202), after applying ballot 1 first
@@ -60,7 +60,7 @@ Notes:
 ## Reproducing
 
 ```bash
-cd threshold_elgamal_voting_fe/bench
+cd bench
 
 # Sonatina (0/1/2):
 rm -rf out/fe
@@ -73,11 +73,11 @@ FE_SONA_OPT_LEVEL=2 forge test --ffi --offline --gas-report --match-test testGas
 The Fe→Yul→solc variant is always built by the harness in `setUp()` using:
 
 ```bash
-fe build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir out/fe/yul --contract ThresholdElection ../ingots/threshold_elgamal_voting_fe
+fe build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir out/fe/yul --contract ThresholdElection ../ingots/voting
 ```
 
 ## Source
 
-- Bench harness: `threshold_elgamal_voting_fe/bench/test/ThresholdElgamalBench.t.sol`
-- Contract: `threshold_elgamal_voting_fe/ingots/threshold_elgamal_voting_fe/src/election.fe`
+- Bench harness: `bench/test/ThresholdElgamalBench.t.sol`
+- Contract: `ingots/voting/src/election.fe`
 

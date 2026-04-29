@@ -1,10 +1,8 @@
 use std::evm::{Address, Call, Evm, assert}
 
-use threshold_elgamal_voting_fe::{
+use crypto::{
     Ciphertext,
-    ElectionMsg,
     G1Point,
-    ThresholdElection,
     aggregate_ciphertext_arrays,
     add_ciphertexts,
     assert_valid_g1,
@@ -18,6 +16,7 @@ use threshold_elgamal_voting_fe::{
     scalar_mul,
     zero_ciphertext,
 }
+use voting::{ElectionMsg, ThresholdElection}
 
 const MASTER_SECRET: u256 = 32164469228446645568222187176204591979408127714536898536374506545149732471
 

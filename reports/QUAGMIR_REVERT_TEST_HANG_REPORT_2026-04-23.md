@@ -13,7 +13,7 @@ Compiler under review:
 Project:
 
 - Directory: `/home/grant/workshop/threshold-elgamal-voting-fe`
-- Fe workspace: `/home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe`
+- Fe workspace: `/home/grant/workshop/threshold-elgamal-voting-fe`
 
 ## Summary
 
@@ -23,7 +23,7 @@ The hanging test is not left in the active test suite because it prevents normal
 
 ## Repro Test
 
-Add this test to `ingots/threshold_elgamal_voting_fe_tests/src/lib.fe`:
+Add this test to `ingots/vector_tests/src/lib.fe`:
 
 ```fe
 #[test(should_revert)]
@@ -50,8 +50,8 @@ uses (evm: mut Evm, call: mut Call)
 Run:
 
 ```sh
-cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
-timeout 60s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/threshold_elgamal_voting_fe_tests --filter test_contract_rejects_invalid_ballot_point
+cd /home/grant/workshop/threshold-elgamal-voting-fe
+timeout 60s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/vector_tests --filter test_contract_rejects_invalid_ballot_point
 ```
 
 Observed result:
@@ -71,7 +71,7 @@ Expected result:
 Direct invalid point revert test:
 
 ```sh
-timeout 60s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/threshold_elgamal_voting_fe_tests --filter test_invalid_g1_point_is_rejected
+timeout 60s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/vector_tests --filter test_invalid_g1_point_is_rejected
 ```
 
 Result:
@@ -84,7 +84,7 @@ test result: ok. 1 passed; 0 failed
 Identity aggregation test:
 
 ```sh
-timeout 60s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/threshold_elgamal_voting_fe_tests --filter test_add_ciphertexts_with_identity_preserves_ballot
+timeout 60s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/vector_tests --filter test_add_ciphertexts_with_identity_preserves_ballot
 ```
 
 Result:
@@ -97,7 +97,7 @@ test result: ok. 1 passed; 0 failed
 Full suite without the hanging repro test:
 
 ```sh
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/threshold_elgamal_voting_fe_tests
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/vector_tests
 ```
 
 Result:

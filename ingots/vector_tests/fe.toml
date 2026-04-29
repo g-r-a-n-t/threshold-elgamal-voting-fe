@@ -1,0 +1,7 @@
+[ingot]
+name = "vector_tests"
+version = "0.1.0"
+
+[dependencies]
+crypto = true
+voting = true

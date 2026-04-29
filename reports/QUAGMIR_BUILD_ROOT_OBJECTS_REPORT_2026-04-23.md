@@ -13,9 +13,9 @@ Compiler under review:
 Project:
 
 - Directory: `/home/grant/workshop/threshold-elgamal-voting-fe`
-- Fe workspace: `/home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe`
+- Fe workspace: `/home/grant/workshop/threshold-elgamal-voting-fe`
 - Contract: `ThresholdElection`
-- Main ingot: `ingots/threshold_elgamal_voting_fe`
+- Main ingot: `ingots/voting`
 
 ## Summary
 
@@ -34,14 +34,14 @@ reports/quagmir-build-root-objects-report.tar.gz
 Generated with:
 
 ```sh
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --report --report-failed-only --report-out reports/quagmir-build-root-objects-report.tar.gz --contract ThresholdElection ingots/threshold_elgamal_voting_fe
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --report --report-failed-only --report-out reports/quagmir-build-root-objects-report.tar.gz --contract ThresholdElection ingots/voting
 ```
 
 Sonatina:
 
 ```sh
-cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --contract ThresholdElection ingots/threshold_elgamal_voting_fe
+cd /home/grant/workshop/threshold-elgamal-voting-fe
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --contract ThresholdElection ingots/voting
 ```
 
 Observed:
@@ -53,8 +53,8 @@ Error: Failed to compile Sonatina bytecode: runtime package has no root objects;
 Yul:
 
 ```sh
-cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir /tmp/threshold-elgamal-voting-fe-yul-build --contract ThresholdElection ingots/threshold_elgamal_voting_fe
+cd /home/grant/workshop/threshold-elgamal-voting-fe
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir /tmp/threshold-elgamal-voting-fe-yul-build --contract ThresholdElection ingots/voting
 ```
 
 Observed:
@@ -67,8 +67,8 @@ Equivalent failing forms:
 
 ```sh
 /home/grant/workshop/fe-quagmir/target/debug/fe --color never build .
-/home/grant/workshop/fe-quagmir/target/debug/fe --color never build ingots/threshold_elgamal_voting_fe
-/home/grant/workshop/fe-quagmir/target/debug/fe --color never build --ingot threshold_elgamal_voting_fe .
+/home/grant/workshop/fe-quagmir/target/debug/fe --color never build ingots/voting
+/home/grant/workshop/fe-quagmir/target/debug/fe --color never build --ingot voting .
 ```
 
 All produce the same root-object failure.
@@ -86,7 +86,7 @@ Result: passed.
 Quagmir test:
 
 ```sh
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/threshold_elgamal_voting_fe_tests
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/vector_tests
 ```
 
 Result:
@@ -98,23 +98,23 @@ test result: ok. 5 passed; 0 failed
 Non-quagmir Sonatina build control:
 
 ```sh
-cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
-timeout 120s /home/grant/workshop/fe/target/debug/fe --color never build --contract ThresholdElection ingots/threshold_elgamal_voting_fe
+cd /home/grant/workshop/threshold-elgamal-voting-fe
+timeout 120s /home/grant/workshop/fe/target/debug/fe --color never build --contract ThresholdElection ingots/voting
 ```
 
 Result:
 
 ```text
-Wrote /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe/ingots/threshold_elgamal_voting_fe/out/ThresholdElection.bin
-Wrote /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe/ingots/threshold_elgamal_voting_fe/out/ThresholdElection.runtime.bin
-Wrote /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe/ingots/threshold_elgamal_voting_fe/out/ThresholdElection.abi.json
+Wrote /home/grant/workshop/threshold-elgamal-voting-fe/ingots/voting/out/ThresholdElection.bin
+Wrote /home/grant/workshop/threshold-elgamal-voting-fe/ingots/voting/out/ThresholdElection.runtime.bin
+Wrote /home/grant/workshop/threshold-elgamal-voting-fe/ingots/voting/out/ThresholdElection.abi.json
 ```
 
 Non-quagmir Yul build control:
 
 ```sh
-cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
-timeout 120s /home/grant/workshop/fe/target/debug/fe --color never build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir /tmp/threshold-elgamal-voting-fe-master-yul-build --contract ThresholdElection ingots/threshold_elgamal_voting_fe
+cd /home/grant/workshop/threshold-elgamal-voting-fe
+timeout 120s /home/grant/workshop/fe/target/debug/fe --color never build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir /tmp/threshold-elgamal-voting-fe-master-yul-build --contract ThresholdElection ingots/voting
 ```
 
 Result:

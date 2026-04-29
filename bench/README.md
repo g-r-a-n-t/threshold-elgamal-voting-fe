@@ -22,7 +22,7 @@ Unlike the adjacent `zk-kit` benchmark harness, this project does **not** compar
 
 ## Run
 
-From `threshold_elgamal_voting_fe/bench`:
+From `bench`:
 
 ```bash
 rm -rf out/fe
@@ -36,4 +36,4 @@ FE_SONA_OPT_LEVEL=2 forge test --ffi --offline -vvv
 
 ## Report
 
-- `../../THRESHOLD_ELGAMAL_VOTING_FE_FOUNDRY_GAS_REPORT.md`
+- `../reports/FOUNDRY_GAS_REPORT.md`

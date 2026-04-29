@@ -13,7 +13,7 @@ interface Vm {
 
 contract ThresholdElgamalBenchTest {
     // -------------------------------------------------------------------------
-    // Test vectors (mirrors `ingots/threshold_elgamal_voting_fe_tests/src/lib.fe`)
+    // Test vectors (mirrors `ingots/vector_tests/src/lib.fe`)
     // -------------------------------------------------------------------------
 
     uint256 private constant PUBLIC_KEY_X = 10300624219749368059713323037041369269067239741452710719700636823789733733154;
@@ -90,7 +90,7 @@ contract ThresholdElgamalBenchTest {
         cmdSona[7] = "out/fe/sonatina";
         cmdSona[8] = "--contract";
         cmdSona[9] = "ThresholdElection";
-        cmdSona[10] = "../ingots/threshold_elgamal_voting_fe";
+        cmdSona[10] = "../ingots/voting";
         vm.ffi(cmdSona);
 
         bytes memory deployCodeSona = _hexStringToBytes(vm.readFile("out/fe/sonatina/ThresholdElection.bin"));
@@ -112,7 +112,7 @@ contract ThresholdElgamalBenchTest {
         cmdYul[9] = "out/fe/yul";
         cmdYul[10] = "--contract";
         cmdYul[11] = "ThresholdElection";
-        cmdYul[12] = "../ingots/threshold_elgamal_voting_fe";
+        cmdYul[12] = "../ingots/voting";
         vm.ffi(cmdYul);
 
         bytes memory deployCodeYul = _hexStringToBytes(vm.readFile("out/fe/yul/ThresholdElection.bin"));
