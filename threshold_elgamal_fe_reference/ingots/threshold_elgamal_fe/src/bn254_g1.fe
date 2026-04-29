@@ -1,6 +1,6 @@
 use std::evm::crypto
 
-use ingot::types::{FIELD_MODULUS, GROUP_ORDER, G1Point}
+use ingot::types::{G1Point, FIELD_MODULUS, GROUP_ORDER}
 
 // BN254 G1 helpers implemented via EVM precompiles (EIP-196).
 //
@@ -21,11 +21,6 @@ pub fn negate(point: G1Point) -> G1Point {
     // For non-infinity points: -(x, y) = (x, p - y) over the base field.
     assert_coordinate_range(point)
     G1Point { x: point.x, y: (FIELD_MODULUS - point.y) % FIELD_MODULUS }
-}
-
-pub fn assert_scalar_mod_q(value: u256) {
-    // Scalars used for G1 multiplication live in the prime field Z_q.
-    assert(value < GROUP_ORDER)
 }
 
 pub fn assert_coordinate_range(point: G1Point) {

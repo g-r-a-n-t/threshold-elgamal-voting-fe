@@ -23,30 +23,14 @@
 pub use bn254_g1::{assert_valid_g1, g1_add, negate, scalar_mul}
 pub use election::{ElectionMsg, ThresholdElection}
 pub use elgamal::{
+    aggregate_ciphertext_arrays,
     add_ciphertexts,
-    add_ciphertexts_from_arrays,
     encode_message_point,
     encode_signed_scalar,
     encrypt_point,
     partial_decrypt,
     remove_mask,
+    zero_ciphertext,
 }
-pub use threshold::{
-    combine_partial_points,
-    combine_partial_points_3,
-    discrete_log_signed,
-    lagrange_coeff_at_zero,
-}
-pub use types::{
-    Ciphertext,
-    CiphertextWords,
-    G1Point,
-    G1PointWords,
-    PartialDecryptionShare,
-    ciphertext_from_words,
-    ciphertext_to_words,
-    g1_generator,
-    g1_infinity,
-    g1_point_from_words,
-    g1_point_to_words,
-}
+pub use threshold::{combine_partial_points, discrete_log_signed, lagrange_coeff_at_zero}
+pub use types::{Ciphertext, CiphertextWords, G1Point, G1PointWords, g1_generator, g1_infinity}
