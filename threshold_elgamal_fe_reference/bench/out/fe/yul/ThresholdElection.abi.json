@@ -1,0 +1,182 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "public_key_x",
+        "type": "uint256"
+      },
+      {
+        "name": "public_key_y",
+        "type": "uint256"
+      },
+      {
+        "name": "threshold",
+        "type": "uint256"
+      },
+      {
+        "name": "voting_deadline",
+        "type": "uint256"
+      },
+      {
+        "name": "coordinator",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "castVote",
+    "inputs": [
+      {
+        "name": "c1_x",
+        "type": "uint256"
+      },
+      {
+        "name": "c1_y",
+        "type": "uint256"
+      },
+      {
+        "name": "c2_x",
+        "type": "uint256"
+      },
+      {
+        "name": "c2_y",
+        "type": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getAggregate",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "closeVoting",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "recordFinalResult",
+    "inputs": [
+      {
+        "name": "tally",
+        "type": "int256"
+      },
+      {
+        "name": "m_x",
+        "type": "uint256"
+      },
+      {
+        "name": "m_y",
+        "type": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "VoteCast",
+    "inputs": [
+      {
+        "name": "voter",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "ballot_index",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "c1_x",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "c1_y",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "c2_x",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "c2_y",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "ElectionClosed",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "FinalResultRecorded",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "indexed": false
+      },
+      {
+        "name": "tally",
+        "type": "int256",
+        "indexed": false
+      },
+      {
+        "name": "m_x",
+        "type": "uint256",
+        "indexed": false
+      },
+      {
+        "name": "m_y",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  }
+]
