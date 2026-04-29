@@ -1,6 +1,6 @@
 use std::evm::{Address, Call, Evm, assert}
 
-use threshold_elgamal_fe::{
+use threshold_elgamal_voting_fe::{
     Ciphertext,
     ElectionMsg,
     G1Point,

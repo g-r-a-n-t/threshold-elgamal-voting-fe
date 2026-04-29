@@ -1,4 +1,4 @@
-# Threshold ElGamal (BN254) Reference Pack for Fe 26
+# Threshold ElGamal Voting Fe Reference Pack
 
 This package is designed to be handed directly to an implementation agent.
 
@@ -20,14 +20,14 @@ This pack assumes **Fe** means the EVM smart-contract language **Fe v26.0.0**.
   - deterministic vectors for cross-checking a contract/client implementation
 - `fe.toml`
   - Fe workspace root
-- `ingots/threshold_elgamal_fe/`
-  - Fe 26 ingot: contract + BN254 G1 + threshold ElGamal
-- `ingots/threshold_elgamal_fe_tests/`
-  - Fe 26 ingot: deterministic vector + contract integration tests
+- `ingots/threshold_elgamal_voting_fe/`
+  - Fe ingot: contract + BN254 G1 + threshold ElGamal voting helpers
+- `ingots/threshold_elgamal_voting_fe_tests/`
+  - Fe ingot: deterministic vector + contract integration tests
 - `docs/`
   - implementation brief
   - scheme spec
-  - Fe 26 notes
+  - Fe notes
   - references
 
 ## Recommended system boundary
@@ -54,7 +54,7 @@ The EVM has native precompiles for BN254 / alt_bn128 point addition, scalar mult
 
 ## Important caveats
 
-- Fe 26 is still early and marked as not production-ready by its own docs.
+- Fe is still early and marked as not production-ready by its own docs.
 - The Python file is the correctness oracle; the Fe ingot implements the same path and includes vector tests for regression safety.
 - This pack does **not** implement ballot-validity ZK proofs. It documents where they fit and leaves room for them in the contract interface.
 
@@ -62,38 +62,20 @@ The EVM has native precompiles for BN254 / alt_bn128 point addition, scalar mult
 
 ### Python reference
 ```bash
-python python_reference/bn254_elgamal_reference.py
-python python_reference/bn254_elgamal_reference.py selftest
-python python_reference/bn254_elgamal_reference.py vectors
-```
-
-### Fe 26 install
-```bash
-curl -fsSL https://raw.githubusercontent.com/argotorg/fe/master/feup/feup.sh | bash -s -- --version v26.0.0
-source ~/.fe/env
-fe --version
+python3 python_reference/bn254_elgamal_reference.py
+python3 python_reference/bn254_elgamal_reference.py selftest
+python3 python_reference/bn254_elgamal_reference.py vectors
 ```
 
 ### Fe quick commands
 ```bash
-cd threshold_elgamal_fe_reference
-fe test ingots/threshold_elgamal_fe_tests
+cd threshold_elgamal_voting_fe
+fe test ingots/threshold_elgamal_voting_fe_tests
 fe build
 
 # If you want to force the Yul backend:
 fe build --backend yul
 ```
-
-## Suggested implementation order for the agent
-
-1. Match the Python test vectors exactly.
-2. Implement BN254 precompile wrappers in Fe:
-   - ECADD at `0x06`
-   - ECMUL at `0x07`
-   - optionally pairing at `0x08`
-3. Implement contract storage and the encrypted tally update path.
-4. Add decryption-share recording and result publication.
-5. Add proof verification only after the raw math path matches the vectors.
 
 ## Files the agent should read first
 
@@ -101,6 +83,6 @@ fe build --backend yul
 2. `docs/SCHEME_SPEC.md`
 3. `python_reference/test_vectors.json`
 4. `python_reference/bn254_elgamal_reference.py`
-5. `ingots/threshold_elgamal_fe/src/election.fe`
-6. `ingots/threshold_elgamal_fe/src/bn254_g1.fe`
+5. `ingots/threshold_elgamal_voting_fe/src/election.fe`
+6. `ingots/threshold_elgamal_voting_fe/src/bn254_g1.fe`
 

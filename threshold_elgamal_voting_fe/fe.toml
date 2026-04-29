@@ -1,0 +1,5 @@
+[workspace]
+name = "threshold_elgamal_voting_fe"
+version = "0.1.0"
+members = { main = ["ingots/threshold_elgamal_voting_fe"], dev = ["ingots/threshold_elgamal_voting_fe_tests"] }
+default-members = ["ingots/threshold_elgamal_voting_fe"]

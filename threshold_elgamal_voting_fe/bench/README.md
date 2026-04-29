@@ -1,4 +1,4 @@
-# threshold-elgamal benchmarks (Foundry)
+# threshold-elgamal-voting-fe benchmarks (Foundry)
 
 This is a self-contained Foundry project that benchmarks **Fe-generated EVM code** for `ThresholdElection`.
 
@@ -22,7 +22,7 @@ Unlike the adjacent `zk-kit` benchmark harness, this project does **not** compar
 
 ## Run
 
-From `threshold_elgamal_fe_reference/bench`:
+From `threshold_elgamal_voting_fe/bench`:
 
 ```bash
 rm -rf out/fe
@@ -36,4 +36,4 @@ FE_SONA_OPT_LEVEL=2 forge test --ffi --offline -vvv
 
 ## Report
 
-- `../../FE_THRESHOLD_ELGAMAL_FOUNDRY_GAS_REPORT.md`
+- `../../THRESHOLD_ELGAMAL_VOTING_FE_FOUNDRY_GAS_REPORT.md`

@@ -12,15 +12,15 @@ Compiler under review:
 
 Project:
 
-- Directory: `/home/grant/workshop/agg-elgamal`
-- Fe workspace: `/home/grant/workshop/agg-elgamal/threshold_elgamal_fe_reference`
+- Directory: `/home/grant/workshop/threshold-elgamal-voting-fe`
+- Fe workspace: `/home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe`
 
 ## Baseline Failure
 
 Initial validation command:
 
 ```sh
-cd /home/grant/workshop/agg-elgamal/threshold_elgamal_fe_reference
+cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
 timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never check .
 ```
 
@@ -36,13 +36,13 @@ submitted was later passed to elgamal::add_ciphertexts(...)
 
 ## Local Updates
 
-Updated `ingots/threshold_elgamal_fe/src/election.fe`:
+Updated `ingots/threshold_elgamal_voting_fe/src/election.fe`:
 
 - Kept the original `submitted: Ciphertext` available for aggregation.
 - Validated temporary `G1Point` values rebuilt from `submitted.c1.x/y` and `submitted.c2.x/y`.
 - This is the narrow ownership fix recommended by the adjacent project handoff.
 
-Updated `ingots/threshold_elgamal_fe_tests/src/lib.fe`:
+Updated `ingots/threshold_elgamal_voting_fe_tests/src/lib.fe`:
 
 - Rebuilt temporary `G1Point` values from `agg.c1.x/y` before each `partial_decrypt(...)` call, avoiding field moves from `agg` before `remove_mask(ciphertext: agg, ...)`.
 - Added `test_add_ciphertexts_with_identity_preserves_ballot` to cover identity ciphertext aggregation.
@@ -52,7 +52,7 @@ Updated `ingots/threshold_elgamal_fe_tests/src/lib.fe`:
 Command:
 
 ```sh
-cd /home/grant/workshop/agg-elgamal/threshold_elgamal_fe_reference
+cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
 timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never check .
 ```
 
@@ -61,8 +61,8 @@ Result: passed.
 Command:
 
 ```sh
-cd /home/grant/workshop/agg-elgamal/threshold_elgamal_fe_reference
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/threshold_elgamal_fe_tests
+cd /home/grant/workshop/threshold-elgamal-voting-fe/threshold_elgamal_voting_fe
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never test ingots/threshold_elgamal_voting_fe_tests
 ```
 
 Result:
@@ -80,8 +80,8 @@ test result: ok. 5 passed; 0 failed
 Quagmir build commands were also checked:
 
 ```sh
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --contract ThresholdElection ingots/threshold_elgamal_fe
-timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir /tmp/agg-elgamal-yul-build --contract ThresholdElection ingots/threshold_elgamal_fe
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --contract ThresholdElection ingots/threshold_elgamal_voting_fe
+timeout 120s /home/grant/workshop/fe-quagmir/target/debug/fe --color never build --backend yul --optimize 2 --solc /usr/bin/solc --out-dir /tmp/threshold-elgamal-voting-fe-yul-build --contract ThresholdElection ingots/threshold_elgamal_voting_fe
 ```
 
 Both fail with `runtime package has no root objects; refusing to emit target-only ...`.

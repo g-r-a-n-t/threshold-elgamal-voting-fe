@@ -9,8 +9,8 @@ This package targets Fe `v26.0.0`.
 This pack uses a small Fe workspace (similar to `fe-zkkit` and other Fe repos):
 
 - `fe.toml` (workspace root)
-- `ingots/threshold_elgamal_fe/` (main ingot)
-- `ingots/threshold_elgamal_fe_tests/` (test ingot)
+- `ingots/threshold_elgamal_voting_fe/` (main ingot)
+- `ingots/threshold_elgamal_voting_fe_tests/` (test ingot)
 
 ## Important Fe syntax patterns used here
 
