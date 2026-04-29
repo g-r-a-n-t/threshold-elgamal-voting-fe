@@ -2,6 +2,9 @@
 .fe-lsp.json
 .fe-lsp/
 
-threshold_elgamal_voting_fe/out/
-threshold_elgamal_voting_fe/ingots/*/out/
-threshold_elgamal_voting_fe/bench/
+out/
+target/
+ingots/*/out/
+bench/cache/
+bench/out/
+bench/broadcast/

@@ -1,8 +1,14 @@
 use std::abi::sol
 
-use ingot::bn254_g1
-use ingot::elgamal
-use ingot::types::{Ciphertext, CiphertextWords, G1Point, G1PointWords}
+use crypto::{
+    Ciphertext,
+    CiphertextWords,
+    G1Point,
+    G1PointWords,
+    add_ciphertexts,
+    assert_valid_g1,
+    is_infinity,
+}
 
 // Minimal on-chain "election" contract for threshold ElGamal tallies.
 //
@@ -95,8 +101,8 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
     {
         // Validate and store the public key.
         let public_key = G1Point { x: public_key_x, y: public_key_y }
-        bn254_g1::assert_valid_g1(point: public_key)
-        assert(!bn254_g1::is_infinity(point: public_key))
+        assert_valid_g1(point: public_key)
+        assert(!is_infinity(point: public_key))
         store.public_key = [public_key_x, public_key_y]
 
         // Encrypted zero tally starts at the point at infinity in both slots.
@@ -131,8 +137,8 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
 
             // Reject invalid curve points early. This is also a safety measure:
             // if we accept malformed points, later EC operations can revert.
-            bn254_g1::assert_valid_g1(point: G1Point { x: submitted.c1.x, y: submitted.c1.y })
-            bn254_g1::assert_valid_g1(point: G1Point { x: submitted.c2.x, y: submitted.c2.y })
+            assert_valid_g1(point: G1Point { x: submitted.c1.x, y: submitted.c1.y })
+            assert_valid_g1(point: G1Point { x: submitted.c2.x, y: submitted.c2.y })
 
             // Load the current aggregate ciphertext from storage.
             let aggregate = Ciphertext {
@@ -141,7 +147,7 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
             }
 
             // Homomorphic accumulation: Enc(m_total) += Enc(m_ballot).
-            let updated = elgamal::add_ciphertexts(lhs: aggregate, rhs: submitted)
+            let updated = add_ciphertexts(lhs: aggregate, rhs: submitted)
 
             // Persist updated aggregate.
             store.aggregate = [updated.c1.x, updated.c1.y, updated.c2.x, updated.c2.y]
@@ -172,7 +178,7 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
         RecordFinalResult { tally, m_x, m_y } uses (ctx, mut store, mut log) {
             assert(ctx.caller() == store.coordinator)
             assert(store.closed)
-            bn254_g1::assert_valid_g1(point: G1Point { x: m_x, y: m_y })
+            assert_valid_g1(point: G1Point { x: m_x, y: m_y })
 
             // TODO:
             // - optionally verify that (m_x, m_y) matches the aggregate ciphertext
