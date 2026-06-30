@@ -8,8 +8,8 @@ use ingot::types::{G1Point, FIELD_MODULUS, GROUP_ORDER}
 // buffer assembly details by leaning on `std::evm::crypto::{ec_add, ec_mul}`.
 //
 // Notes:
-// - `std::evm::crypto::ec_add` and `ec_mul` revert on malformed inputs / invalid
-//   points, which we use as a cheap validity check.
+// - `std::evm::crypto::ec_add` and `ec_mul` return `Result`; panicking on
+//   failures restores the old revert-on-invalid-point behavior.
 // - We encode the point at infinity as (0, 0), matching the precompile convention.
 
 pub fn is_infinity(point: G1Point) -> bool {
@@ -39,7 +39,10 @@ pub fn assert_valid_g1(point: G1Point) {
     // validator that also rejects out-of-field coordinates.
     let px: u256 = point.x
     let py: u256 = point.y
-    let _ = crypto::ec_mul(px, py, 1)
+    match crypto::ec_mul(px: px, py: py, s: 1) {
+        Ok(_) => (),
+        Err(_) => panic(),
+    }
 }
 
 pub fn g1_add(lhs: G1Point, rhs: G1Point) -> G1Point {
@@ -50,8 +53,11 @@ pub fn g1_add(lhs: G1Point, rhs: G1Point) -> G1Point {
     let ay: u256 = lhs.y
     let bx: u256 = rhs.x
     let by: u256 = rhs.y
-    let (x, y) = crypto::ec_add(ax, ay, bx, by)
-    G1Point { x, y }
+    let out = match crypto::ec_add(ax: ax, ay: ay, bx: bx, by: by) {
+        Ok(value) => value,
+        Err(_) => panic(),
+    }
+    G1Point { x: out.0, y: out.1 }
 }
 
 pub fn scalar_mul(point: G1Point, scalar: u256) -> G1Point {
@@ -62,6 +68,9 @@ pub fn scalar_mul(point: G1Point, scalar: u256) -> G1Point {
     let s = scalar % GROUP_ORDER
     let px: u256 = point.x
     let py: u256 = point.y
-    let (x, y) = crypto::ec_mul(px, py, s)
-    G1Point { x, y }
+    let out = match crypto::ec_mul(px: px, py: py, s: s) {
+        Ok(value) => value,
+        Err(_) => panic(),
+    }
+    G1Point { x: out.0, y: out.1 }
 }

@@ -27,7 +27,10 @@ pub fn mod_inv_q(value: u256) -> u256 {
     //   a^{-1} = a^{q-2} mod q
     let v = value % GROUP_ORDER
     assert(v != 0)
-    crypto::modexp(v, GROUP_ORDER - 2, GROUP_ORDER)
+    match crypto::modexp(base: v, exp: GROUP_ORDER - 2, modulus: GROUP_ORDER) {
+        Ok(value) => value,
+        Err(_) => panic(),
+    }
 }
 
 pub fn lagrange_coeff_at_zero<const N: usize>(position: usize, indices: [u256; N]) -> u256 {
