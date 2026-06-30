@@ -16,15 +16,17 @@ The reference material, Python oracle, deterministic vectors, Fe vector tests, b
 
 ## Build
 
+Tested with `fe 26.2.0`.
+
 ```bash
-fe build
+fe build --emit bytecode,runtime-bytecode,abi,metadata
 ```
 
 ## Gas Snapshot
 
 The gas benchmarks live on `extra` and compare Fe's Sonatina backend with Fe to Yul to solc. At a high level, `castVote(...)` is the expensive path because each vote validates two BN254 points and updates both ciphertext points in storage. Subsequent votes are much cheaper than the first vote, `getAggregate()` is relatively small, and the optimized Sonatina and Yul paths are close enough that backend choice is not the main driver here.
 
-See the full gas report on `extra`: [reports/FOUNDRY_GAS_REPORT.md](blob/extra/reports/FOUNDRY_GAS_REPORT.md).
+See the full gas report on `extra`: [reports/FOUNDRY_GAS_REPORT.md](https://github.com/g-r-a-n-t/threshold-elgamal-voting-fe/blob/extra/reports/FOUNDRY_GAS_REPORT.md).
 
 ## Extra branch
 
