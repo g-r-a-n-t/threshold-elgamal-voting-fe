@@ -102,7 +102,7 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
         // Validate and store the public key.
         let public_key = G1Point { x: public_key_x, y: public_key_y }
         assert_valid_g1(point: public_key)
-        assert(!is_infinity(point: public_key))
+        assert!(!is_infinity(point: public_key), "invalid public key")
         store.public_key = [public_key_x, public_key_y]
 
         // Encrypted zero tally starts at the point at infinity in both slots.
@@ -110,7 +110,7 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
 
         // Election configuration / permissions.
         store.ballot_count = 0
-        assert(threshold > 0)
+        assert!(threshold > 0, "threshold is zero")
         // Stored for off-chain consumers and future extensions (e.g. recording /
         // verifying threshold decryption shares). Not currently enforced by the
         // on-chain logic in this scaffold.
@@ -126,8 +126,8 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
     recv ElectionMsg {
         CastVote { c1_x, c1_y, c2_x, c2_y } uses (ctx, mut store, mut log) {
             // Basic state-machine checks.
-            assert(!store.closed)
-            assert(ctx.timestamp() < store.voting_deadline)
+            assert!(!store.closed, "voting closed")
+            assert!(ctx.timestamp() < store.voting_deadline, "voting ended")
 
             // Decode the submitted ciphertext.
             let submitted = Ciphertext {
@@ -170,14 +170,14 @@ pub contract ThresholdElection uses (ctx: mut Ctx, log: mut Log) {
         }
 
         CloseVoting uses (ctx, mut store, mut log) {
-            assert(ctx.caller() == store.coordinator)
+            assert!(ctx.caller() == store.coordinator, "only coordinator")
             store.closed = true
             log.emit(event: ElectionClosed { caller: ctx.caller() })
         }
 
         RecordFinalResult { tally, m_x, m_y } uses (ctx, mut store, mut log) {
-            assert(ctx.caller() == store.coordinator)
-            assert(store.closed)
+            assert!(ctx.caller() == store.coordinator, "only coordinator")
+            assert!(store.closed, "voting still open")
             assert_valid_g1(point: G1Point { x: m_x, y: m_y })
 
             // TODO:
